@@ -11,8 +11,8 @@ def resnet18_classifier(n_labels: int) -> torch.nn.Module:
                 layer.weight, mode="fan_out", nonlinearity="relu")
 
         if isinstance(layer, torch.nn.BatchNorm2d):
-            torch.nn.init.constant(layer.weight, 1)
-            torch.nn.init.constant(layer.bias, 0)
+            torch.nn.init.constant_(layer.weight, 1)
+            torch.nn.init.constant_(layer.bias, 0)
     return model
 
 
