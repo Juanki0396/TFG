@@ -77,6 +77,6 @@ def training(
 
             del X, Y, output
 
-            train_tqdm.set_description(f"Current test loss {test_loss/(batch+1):.3f}")
+            test_tqdm.set_description(f"Current test loss {test_loss/(batch+1):.3f}")
 
         print(f"Correct labeling: {correct:.0f} of {batch+1} images")
