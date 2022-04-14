@@ -23,6 +23,7 @@ def training(
         device = "cuda"
 
     model = model.to(device)
+    sigmoid = torch.nn.Sigmoid()
 
     for epoch in range(epochs):
 
@@ -44,7 +45,7 @@ def training(
             output = model(X)
             output = torch.reshape(output, (-1,)).float()
 
-            l = loss(output.float(), Y.float())
+            l = loss(sigmoid(output.float()), Y.float())
 
             optimizer.zero_grad()
             l.backward()
@@ -72,8 +73,8 @@ def training(
             with torch.no_grad():
                 output = model(X)
                 output = torch.reshape(output, (-1,)).float()
-                test_loss += loss(output, Y)
-                correct += ((output > 0.5) == Y).type(torch.float).sum().item()
+                test_loss += loss(sigmoid(output.float()), Y.float())
+                correct += ((sigmoid(output) > 0.5) == Y).type(torch.float).sum().item()
 
             del X, Y, output
 
