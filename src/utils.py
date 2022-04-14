@@ -1,6 +1,9 @@
 import datetime
 import time
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 
 def run_time(f):
     def wrapper(*args, **kwargs):
@@ -10,6 +13,14 @@ def run_time(f):
         print(f"Running time -> {datetime.timedelta(seconds=t//1)}")
         return result
     return wrapper
+
+
+def plot_image(img: np.ndarray, label: int):
+    fig = plt.imshow(img)
+    fig.set_cmap("gray")
+    plt.title(f"Label {label}")
+    plt.axis("off")
+    plt.show()
 
 
 if __name__ == "__main__":
