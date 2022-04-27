@@ -1,7 +1,8 @@
 
 import os
 import random
-from typing import Tuple, List
+from typing import Dict, Tuple, List
+from collections import namedtuple
 
 
 import torch
@@ -47,13 +48,25 @@ def generate_noisy_dataset(data):
     return new_data
 
 
+def generate_cycle_gan_dataset(data):
+
+    noisy_dataset = generate_noisy_dataset(data)
+    images_A = filter(lambda x: x[1] == 0, noisy_dataset)
+    images_B = filter(lambda x: x[1] == 1, noisy_dataset)
+    cyclegan_dataset = []
+    for tupA, tupB in zip(images_A, images_B):
+        data = {"A": tupA[0], "B": tupB[0]}
+        cyclegan_dataset.append(data)
+    return cyclegan_dataset
+
+
 class ImageDataset(Dataset):
 
     def __init__(
             self, dataset: List[Tuple[np.ndarray, int]], image_output_size: Tuple[int, int] = (256, 256),
             random_labels: bool = False) -> None:
         super().__init__()
-        self.__data = dataset
+        self.__dataset = dataset
         self.__image_size = image_output_size
         self.__transform = Compose([
             Resize(self.__image_size),
@@ -67,16 +80,41 @@ class ImageDataset(Dataset):
             self.__random_labels = []
 
     def __len__(self) -> int:
-        return len(self.__data)
+        return len(self.__dataset)
 
     def __getitem__(self, index) -> Tuple[torch.Tensor, int]:
-        img, label = self.__data[index]
+        img, label = self.__dataset[index]
         img = torch.from_numpy(np.squeeze(img).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
         img = self.__transform(img)
         if len(self.__random_labels) != 0:
             label = self.__random_labels[index]
 
-        return img, label
+        return img, torch.FloatTensor([label])
+
+
+class CycleGanDataset(Dataset):
+
+    def __init__(self, dataset: List[Dict[str, np.ndarray]], image_output_size: Tuple[int, int] = (256, 256)) -> None:
+
+        self.dataset = dataset
+        self.__image_size = image_output_size
+        self.__transform = Compose([
+            Resize(self.__image_size),
+            Normalization
+        ])
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    def __getitem__(self, index) -> Dict[str, np.ndarray]:
+
+        data = self.dataset[index]
+        for key, img in data.items():
+            img = torch.from_numpy(np.squeeze(img).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
+            img = self.__transform(img)
+            data[key] = img
+
+        return data
 
 
 if __name__ == "__main__":
