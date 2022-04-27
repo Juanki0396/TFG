@@ -1,83 +1,115 @@
 
+import abc
 from typing import Callable
 
-import tqdm.notebook
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
 from src.utils import run_time
+from src.models.base_model import BaseModel, CycleGan, ImageClassifier
 
 
-@run_time
-def training(
-    model: torch.nn.Module,
-    train_dataloader: DataLoader,
-    validation_datalaoder: DataLoader,
-    optimizer: torch.optim.Optimizer,
-    loss: Callable,
-    epochs: int
-) -> None:
+class BaseTrainer(abc.ABC):
 
-    device = "cpu"
-    if torch.cuda.is_available:
-        device = "cuda"
+    def __init__(self) -> None:
+        super().__init__()
 
-    model = model.to(device)
-    sigmoid = torch.nn.Sigmoid()
+        self.model = None
 
-    for epoch in range(epochs):
+    def set_dataloaders(self, train_dataloader: DataLoader, validation_dataloader: DataLoader) -> None:
 
-        print(f"EPOCH {epoch}".center(20, "-"))
+        self.train_dataloader = train_dataloader
+        self.validation_dataloader = validation_dataloader
 
-        model.train()
-        train_tqdm = tqdm.notebook.tqdm(
-            enumerate(train_dataloader),
-            total=len(train_dataloader),
-            desc="Current train loss", leave=True, unit="Batch", unit_divisor=1)
+    @abc.abstractmethod
+    def train_epoch(self):
+        pass
 
-        train_loss = 0
+    @abc.abstractmethod
+    def validation_epoch(self):
+        pass
 
-        for batch, (X, Y) in train_tqdm:
 
-            X = X.to(device)
-            Y = Y.to(device)
+class CycleGanTrainer(BaseTrainer):
 
-            output = model(X)
-            output = torch.reshape(output, (-1,)).float()
+    def __init__(self, model: CycleGan) -> None:
+        super().__init__()
 
-            l = loss(sigmoid(output.float()), Y.float())
+        self.model = model
+        self.train_losss = []
 
-            optimizer.zero_grad()
-            l.backward()
-            optimizer.step()
+    @run_time
+    def train_epoch(self):
 
-            train_loss += l
+        self.model.set_train_mode(True)
 
-            del X, Y, output, l
+        for input in self.train_dataloader:
 
-            train_tqdm.set_description(f"Current train loss {train_loss/(batch+1):.3f}")
+            self.model.set_input(input)
+            batch_losses = self.model.update_parameters()
+            self.train_losss.append(batch_losses)
 
-        model.eval()
-        test_tqdm = tqdm.notebook.tqdm(
-            enumerate(validation_datalaoder),
-            total=len(validation_datalaoder),
-            desc="Current test loss", leave=True, unit="Batch", unit_divisor=1)
-        test_loss = 0
-        correct = 0
+    @run_time
+    def validation_epoch(self):
 
-        for batch, (X, Y) in test_tqdm:
+        self.model.set_train_mode(False)
+        self.validation_images = []
 
-            X = X.to(device)
-            Y = Y.to(device)
+        for batch, input in enumerate(self.validation_dataloader):
+            self.model.set_input(input)
+            images = self.model.test()
+            if batch % 20 == 0:
+                self.validation_images.append(images)
 
-            with torch.no_grad():
-                output = model(X)
-                output = torch.reshape(output, (-1,)).float()
-                test_loss += loss(sigmoid(output.float()), Y.float())
-                correct += ((sigmoid(output) > 0.5) == Y).type(torch.float).sum().item()
+    def plot_training_losses(self):
+        pass
 
-            del X, Y, output
 
-            test_tqdm.set_description(f"Current test loss {test_loss/(batch+1):.3f}")
+class ClassifierTrainer(BaseTrainer):
 
-        print(f"Correct labeling: {correct:.0f} of {batch+1} images")
+    def __init__(self, model: ImageClassifier) -> None:
+        super().__init__()
+
+        self.model = model
+        self.epoch_train_loss = []
+        self.epoch_validation_loss = []
+        self.epoch_metric = []
+
+    @run_time
+    def train_epoch(self):
+
+        self.model.set_train_mode(True)
+        batch_losses = []
+
+        for imgs, labels in self.train_dataloader:
+
+            self.model.set_input(imgs, labels)
+            losses = self.model.update_parameters()
+            batch_losses.append(losses["BCEloss"])
+
+            del imgs, labels
+
+        mean_loss = np.mean(batch_losses)
+        self.epoch_train_loss.append(mean_loss)
+
+    @run_time
+    def validation_epoch(self):
+
+        self.model.set_train_mode(False)
+        batch_losses = []
+        batch_metrics = []
+
+        for imgs, labels in self.validation_dataloader:
+
+            self.model.set_input(imgs, labels)
+            losses = self.model.test()
+            batch_losses.append(losses["BCEloss"])
+            batch_metrics.append(losses["Accuracy"])
+
+            del imgs, labels
+
+        mean_loss = np.mean(batch_losses)
+        mean_metric = np.mean(batch_metrics)
+        self.epoch_validation_loss.append(mean_loss)
+        self.epoch_metric.append(mean_metric)
