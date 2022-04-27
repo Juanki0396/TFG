@@ -79,6 +79,10 @@ class ResnetGenerator(nn.Module):
 
         self.model = nn.Sequential(*model)
 
+        for layer in self.model.modules():
+            if isinstance(layer, (nn.Conv2d, nn.ConvTranspose2d)):
+                nn.init.kaiming_normal_(layer.weight, mode="fan_out", nonlinearity="relu")
+
     def forward(self, input):
         """Standard forward"""
         return self.model(input)
@@ -239,6 +243,10 @@ class UnetSkipConnectionBlock(nn.Module):
 
         self.model = nn.Sequential(*model)
 
+        for layer in self.model.modules():
+            if isinstance(layer, (nn.Conv2d, nn.ConvTranspose2d)):
+                nn.init.kaiming_normal_(layer.weight, mode="fan_out", nonlinearity="relu")
+
     def forward(self, x):
         if self.outermost:
             return self.model(x)
@@ -292,6 +300,10 @@ class NLayerDiscriminator(nn.Module):
                      ]  # output 1 channel prediction map
         self.model = nn.Sequential(*sequence)
 
+        for layer in self.model.modules():
+            if isinstance(layer, (nn.Conv2d, nn.ConvTranspose2d)):
+                nn.init.kaiming_normal_(layer.weight, mode="fan_out", nonlinearity="relu")
+
     def forward(self, input):
         """Standard forward."""
         return self.model(input)
@@ -322,6 +334,10 @@ class PixelDiscriminator(nn.Module):
             nn.Conv2d(ndf * 2, 1, kernel_size=1, stride=1, padding=0, bias=use_bias)]
 
         self.net = nn.Sequential(*self.net)
+
+        for layer in self.net.modules():
+            if isinstance(layer, (nn.Conv2d, nn.ConvTranspose2d)):
+                nn.init.kaiming_normal_(layer.weight, mode="fan_out", nonlinearity="relu")
 
     def forward(self, input):
         """Standard forward."""
