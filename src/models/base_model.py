@@ -62,7 +62,7 @@ class BaseModel(ABC):
 
         model_dir = os.path.join(save_dir, self.name)
         if not os.path.exists(model_dir):
-            os.makedir(model_dir)
+            os.mkdir(model_dir)
 
         for key, model in self.models.items():
             path = os.path.join(model_dir, f"{key}.pth")
