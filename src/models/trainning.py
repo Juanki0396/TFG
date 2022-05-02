@@ -197,3 +197,15 @@ def train_classifiers(train_manager: ClassifierTrainer, epochs: int) -> Classifi
         train_manager.save_model()
 
     return train_manager
+
+
+def train_cyclegan(train_manager: CycleGanTrainer, epochs: int) -> CycleGanTrainer:
+    for epoch in range(epochs):
+        print(f"Epoch {epoch}".center(30, "-"))
+        print(" Starting training loop")
+        train_manager.train_epoch()
+        print(f"Results")
+        print(f"Losses:\n{train_manager.train_losss[-1]}")
+        train_manager.save_model()
+
+    return train_manager
