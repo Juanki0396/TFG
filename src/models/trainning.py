@@ -20,10 +20,9 @@ class BaseTrainer(abc.ABC):
 
         self.model = None
 
-    def set_dataloaders(self, train_dataloader: DataLoader, validation_dataloader: DataLoader) -> None:
-
-        self.train_dataloader = train_dataloader
-        self.validation_dataloader = validation_dataloader
+    @abc.abstractmethod
+    def set_dataloaders(self) -> None:
+        pass
 
     @abc.abstractmethod
     def train_epoch(self):
@@ -41,6 +40,10 @@ class CycleGanTrainer(BaseTrainer):
 
         self.model = model
         self.train_losss = []
+
+    def set_dataloaders(self, train_dataloader: DataLoader) -> None:
+
+        self.train_dataloader = train_dataloader
 
     @run_time
     def train_epoch(self):
@@ -66,7 +69,32 @@ class CycleGanTrainer(BaseTrainer):
                 self.validation_images.append(images)
 
     def plot_training_losses(self):
-        pass
+
+        epochs = range(len(self.train_losss))
+        loss_DA = map(lambda x: x["loss_DA"], self.train_losss)
+        loss_DB = map(lambda x: x["loss_DB"], self.train_losss)
+        loss_GA = map(lambda x: x["loss_GA"], self.train_losss)
+        loss_GB = map(lambda x: x["loss_GB"], self.train_losss)
+        #loss_cycle = map(lambda x: x["loss_cycle"], self.train_losss)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+        ax1.plot(epochs, list(loss_GA), label="Generator A")
+        ax1.plot(epochs, list(loss_GB), label="Generator B")
+        #ax1.set_ylim(0, 2)
+        ax1.set_xlabel("Epochs")
+        ax1.set_ylabel("BCE with Logistic")
+        ax1.set_title("Generator losses")
+        ax1.legend()
+
+        ax2.plot(epochs, list(loss_DA), label="Discriminator A")
+        ax2.plot(epochs, list(loss_DB), label="Discriminator B")
+        #ax2.set_ylim(0, 1)
+        ax2.set_xlabel("Epochs")
+        ax2.set_ylabel("BCE with Logistic")
+        ax2.set_title("Discriminators")
+
+        return fig
 
 
 class ClassifierTrainer(BaseTrainer):
@@ -81,6 +109,11 @@ class ClassifierTrainer(BaseTrainer):
         self.epoch_metric = []
         self.metric_model_saved = 0.
         self.train_loss_model_saved = None
+
+    def set_dataloaders(self, train_dataloader: DataLoader, validation_dataloader: DataLoader) -> None:
+
+        self.train_dataloader = train_dataloader
+        self.validation_dataloader = validation_dataloader
 
     @run_time
     def train_epoch(self):
@@ -148,3 +181,19 @@ class ClassifierTrainer(BaseTrainer):
         ax2.set_title("Metrics")
 
         return fig
+
+
+def train_classifiers(train_manager: ClassifierTrainer, epochs: int) -> ClassifierTrainer:
+    for epoch in range(epochs):
+        print(f"Epoch {epoch}".center(30, "-"))
+        print(" Starting training loop")
+        train_manager.train_epoch()
+        print(" Starting validation loop")
+        train_manager.validation_epoch()
+        print(f"Results")
+        print(f"Train loss: {train_manager.epoch_train_loss[epoch]}")
+        print(f"Validation loss: {train_manager.epoch_validation_loss[epoch]}")
+        print(f"Metric: {train_manager.epoch_metric[epoch]}")
+        train_manager.save_model()
+
+    return train_manager

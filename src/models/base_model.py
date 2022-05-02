@@ -129,10 +129,10 @@ class CycleGan(BaseModel):
     def basic_backward_D(self, net_D: torch.nn.Module, real: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
 
         pred_real = net_D(real)
-        loss_real = self.criterions["gan"](pred_real, True)
+        loss_real = self.criterions["gan"](pred_real, torch.Tensor([1.0]).expand_as(pred_real))
 
         pred_fake = net_D(fake.detach())
-        loss_fake = self.criterions["gan"](pred_fake, False)
+        loss_fake = self.criterions["gan"](pred_fake, torch.Tensor([0.0]).expand_as(pred_fake))
 
         total_loss = (loss_fake + loss_real) * 0.5
         total_loss.backward()
@@ -148,8 +148,10 @@ class CycleGan(BaseModel):
 
         lambda_ = 10
 
-        loss_GA = self.criterions["gan"](self.models["net_DA"](self.fake_B), True)
-        loss_GB = self.criterions["gan"](self.models["net_DB"](self.fake_A), True)
+        pred_B = self.models["net_DA"](self.fake_B)
+        pred_A = self.models["net_DB"](self.fake_A)
+        loss_GA = self.criterions["gan"](pred_B, torch.Tensor([1.0]).expand_as(pred_B))
+        loss_GB = self.criterions["gan"](pred_A, torch.Tensor([1.0]).expand_as(pred_A))
         loss_cycleA = self.criterions["cycle"](self.rec_A, self.real_A) * lambda_
         loss_cycleB = self.criterions["cycle"](self.rec_B, self.real_B) * lambda_
         total_loss = loss_GA + loss_GB + loss_cycleA + loss_cycleB
@@ -167,8 +169,8 @@ class CycleGan(BaseModel):
         self.optimizers["G"].step()
 
         self.set_requires_grad([self.models["net_DA"], self.models["net_DB"]], True)
-        loss_D = self.optimizers["D"].zero_grad()
-        self.backward_D()
+        self.optimizers["D"].zero_grad()
+        loss_D = self.backward_D()
         self.optimizers["D"].step()
 
         loss_G.update(loss_D)
