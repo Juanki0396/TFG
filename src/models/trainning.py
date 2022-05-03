@@ -35,10 +35,11 @@ class BaseTrainer(abc.ABC):
 
 class CycleGanTrainer(BaseTrainer):
 
-    def __init__(self, model: CycleGan) -> None:
+    def __init__(self, model: CycleGan, save_dir: str) -> None:
         super().__init__()
 
         self.model = model
+        self.save_dir = save_dir
         self.train_losss = []
 
     def set_dataloaders(self, train_dataloader: DataLoader) -> None:
@@ -67,6 +68,15 @@ class CycleGanTrainer(BaseTrainer):
             images = self.model.test()
             if batch % 20 == 0:
                 self.validation_images.append(images)
+
+    def save_model(self):
+
+        loss_GA = list(map(lambda x: x["loss_GA"], self.train_losss))
+        loss_GB = list(map(lambda x: x["loss_GB"], self.train_losss))
+        if min(loss_GA) == loss_GA[-1] and min(loss_GB) == loss_GB[-1]:
+            print(f"Best losses achivied -> loss GA: {loss_GA[-1]}  and loss GB: {loss_GB[-1]}")
+            print("Saving model")
+            self.model.save_model(self.save_dir)
 
     def plot_training_losses(self):
 
