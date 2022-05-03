@@ -108,8 +108,8 @@ class CycleGanDataset(Dataset):
 
     def __getitem__(self, index) -> Dict[str, np.ndarray]:
 
-        data = self.dataset[index]
-        for key, x in data.items():
+        data = {}
+        for key, x in self.dataset[index].items():
             img = torch.from_numpy(np.squeeze(x.copy()).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
             img = self.__transform(img)
             data[key] = img
