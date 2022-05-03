@@ -83,8 +83,8 @@ class ImageDataset(Dataset):
         return len(self.__dataset)
 
     def __getitem__(self, index) -> Tuple[torch.Tensor, int]:
-        img, label = self.__dataset[index]
-        img = torch.from_numpy(np.squeeze(img).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
+        x, label = self.__dataset[index]
+        img = torch.from_numpy(np.squeeze(x.copy()).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
         img = self.__transform(img)
         if len(self.__random_labels) != 0:
             label = self.__random_labels[index]
@@ -109,8 +109,8 @@ class CycleGanDataset(Dataset):
     def __getitem__(self, index) -> Dict[str, np.ndarray]:
 
         data = self.dataset[index]
-        for key, img in data.items():
-            img = torch.from_numpy(np.squeeze(img).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
+        for key, x in data.items():
+            img = torch.from_numpy(np.squeeze(x.copy()).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
             img = self.__transform(img)
             data[key] = img
 
