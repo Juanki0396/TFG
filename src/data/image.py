@@ -1,6 +1,7 @@
+from __future__ import annotations
 from PIL import Image as pil_Image
 import os
-from typing import Tuple, Union
+from typing import Tuple, Union, Iterable, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,6 +12,20 @@ from scipy.ndimage import zoom
 class Image:
     """Class that handles black and white images
     """
+
+    @classmethod
+    def from_path(cls, path: str) -> Image:
+        """Creates a Image instance from path to file.
+
+        Args:
+            paths (str): path of the image to load.
+
+        Returns:
+            Image
+        """
+        image = np.array(pil_Image.open(path))
+        image = cls(image)
+        return image
 
     @staticmethod
     def standarize_bw_image(image: np.ndarray) -> np.ndarray:
@@ -28,17 +43,18 @@ class Image:
 
         if image.ndim == 3:
 
-            channel_axis = np.argmin(image.shape)
+            channel_axis = np.argmin(image.shape)  # Channel should be the smallest dim for 2d images
             image = image.mean(axis=channel_axis)
 
         return image
 
-    def __init__(self, image: Union[np.ndarray, torch.Tensor]) -> None:
+    def __init__(self, image: Union[np.ndarray, torch.Tensor], label: Union[str, float, int] = None) -> None:
 
         if isinstance(image, torch.Tensor):
             image = image.cpu().numpy()
 
         self.image = Image.standarize_bw_image(image)
+        self.label = label
 
     @property
     def torch_tensor(self) -> torch.Tensor:
@@ -103,3 +119,5 @@ class Image:
         axes.imshow(self.image, cmap=cmap)
         axes.axis("off")
         axes.set_title(tittle)
+
+        return fig
