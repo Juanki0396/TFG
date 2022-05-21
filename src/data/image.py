@@ -69,7 +69,7 @@ class Image:
 
         return tensor
 
-    def reshape(self, new_shape: Tuple[int, int], interpolation_order: int = 3) -> None:
+    def reshape(self, new_shape: Tuple[int, int], interpolation_order: int = 3) -> Image:
         """Reshape the image inplace to the selected shape.
 
         Args:
@@ -85,6 +85,8 @@ class Image:
         resize_factor = new_shape / current_shape
 
         self.image = zoom(self.image, resize_factor, order=interpolation_order)
+
+        return self
 
     def save_image(self, dir_path: str, file_name: str) -> None:
         """Save the image in the specified path. File name can contain the extension, if not it is set to png.
