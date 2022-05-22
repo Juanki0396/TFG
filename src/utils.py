@@ -1,33 +1,19 @@
+
 import datetime
 import time
-
-import numpy as np
-import matplotlib.pyplot as plt
+from typing import Callable, Any
 
 
-def run_time(f):
-    def wrapper(*args, **kwargs):
+def run_time(f: Callable) -> Callable:
+    """Decorator that meassures the execution time of a function.
+
+    Args:
+        f (Callable): Function to decorate.
+    """
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         t = time.time()
         result = f(*args, **kwargs)
         t = time.time() - t
         print(f"Running time -> {datetime.timedelta(seconds=t//1)}")
         return result
     return wrapper
-
-
-def plot_image(img: np.ndarray, label: int):
-    fig = plt.imshow(img)
-    fig.set_cmap("gray")
-    plt.title(f"Label {label}")
-    plt.axis("off")
-    plt.show()
-
-
-if __name__ == "__main__":
-
-    @run_time
-    def hello():
-        time.sleep(5)
-        print("hello")
-
-    hello()
