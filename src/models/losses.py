@@ -3,14 +3,22 @@
 import torch
 
 
-def accuracy(threshold: float = 0.5):
+def binary_classification_accuracy(predictions: torch.Tensor, truth: torch.Tensor, threshold: float = 0.5) -> float:
+    """Compute the correct classification by the predicitons. The threshold indicate the minimum probability
+    needed to classify as positive the predictions.
 
-    def metric(predictions: torch.Tensor, truth: torch.Tensor) -> float:
-        predictions = predictions.reshape((-1))
-        truth = truth.reshape((-1))
+    Args:
+        predictions (torch.Tensor)
+        truth (torch.Tensor)
+        threshold (float, optional):  Defaults to 0.5.
 
-        n = len(predictions)
-        total = ((predictions > threshold) == truth).type(torch.float).sum().item() / n
+    Returns:
+        float: 
+    """
+    predictions = predictions.reshape((-1))
+    truth = truth.reshape((-1))
 
-        return total
-    return metric
+    n = len(predictions)
+    total = ((predictions > threshold) == truth).type(torch.float).sum().item() / n
+
+    return total
