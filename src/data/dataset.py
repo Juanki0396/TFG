@@ -10,25 +10,8 @@ import numpy as np
 from torch.utils.data import Dataset
 from torchvision.transforms import Resize, Normalize, Compose
 
-from config import SEED
-
-random.seed(SEED)
-np.random.seed(SEED)
-
-
-def load_data(numpy_path: str) -> List[Tuple[np.ndarray, int]]:
-    array = np.load(numpy_path, allow_pickle=True)
-    data = [(img, label) for img, label in array]
-    return data
-
-
-def add_random_noise(img: np.ndarray) -> np.ndarray:
-    noise = np.random.normal(img.mean(), img.std(), img.shape)
-    return noise + img
-
-
-def Normalization(tensor: torch.Tensor) -> torch.Tensor:
-    return (tensor - tensor.min()) / (tensor.max() - tensor.min())
+from data.image import Image
+from .data_transforms import add_random_noise, Normalization
 
 
 def generate_noisy_dataset(data):
@@ -63,31 +46,21 @@ def generate_cycle_gan_dataset(data):
 class ImageDataset(Dataset):
 
     def __init__(
-            self, dataset: List[Tuple[np.ndarray, int]], image_output_size: Tuple[int, int] = (256, 256),
-            random_labels: bool = False) -> None:
-        super().__init__()
-        self.__dataset = dataset
-        self.__image_size = image_output_size
-        self.__transform = Compose([
-            Resize(self.__image_size),
-            Normalization
-        ])
+            self, dataset: List[Image]) -> None:
 
-        if random_labels:
-            self.__random_labels = [1 if i <= len(self)//2 else 0 for i in range(len(self))]
-            random.shuffle(self.__random_labels)
-        else:
-            self.__random_labels = []
+        super().__init__()
+
+        self.dataset = dataset
+        self.transform = Normalization
 
     def __len__(self) -> int:
-        return len(self.__dataset)
+        return len(self.dataset)
 
     def __getitem__(self, index) -> Tuple[torch.Tensor, int]:
-        x, label = self.__dataset[index]
-        img = torch.from_numpy(np.squeeze(x.copy()).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
-        img = self.__transform(img)
-        if len(self.__random_labels) != 0:
-            label = self.__random_labels[index]
+
+        data = self.dataset[index]
+        img, label = data.torch_tensor, torch.FloatTensor(data.label)
+        img = self.transform(img)
 
         return img, torch.FloatTensor([label])
 
