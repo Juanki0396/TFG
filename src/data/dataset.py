@@ -10,24 +10,28 @@ import numpy as np
 from torch.utils.data import Dataset
 from torchvision.transforms import Resize, Normalize, Compose
 
-from data.image import Image
-from .data_transforms import add_random_noise, Normalization
+from .image import Image
+from .data_transforms import RandomNoise, DynamicRangeScaling
 
 
-def generate_noisy_dataset(data):
+def generate_noisy_dataset(data: List[Image]):
 
     new_data = []
+
     labels = [1 if i <= (len(data)//2) else 0 for i in range(len(data))]
     random.shuffle(labels)
+
+    random_transform = RandomNoise(0, 20)
+
     for i, label in enumerate(labels):
+        img = data[i]
         if label == 1:
-            img = data[i][0]
-            x = add_random_noise(img)
-            y = label
+
+            img.image = random_transform(img.image)
+            img.label = label
         else:
-            x = data[i][0]
-            y = label
-        new_data.append((x, y))
+            img.label = label
+        new_data.append(img)
     return new_data
 
 
@@ -51,7 +55,7 @@ class ImageDataset(Dataset):
         super().__init__()
 
         self.dataset = dataset
-        self.transform = Normalization
+        self.transform = DynamicRangeScaling()
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -59,10 +63,10 @@ class ImageDataset(Dataset):
     def __getitem__(self, index) -> Tuple[torch.Tensor, int]:
 
         data = self.dataset[index]
-        img, label = data.torch_tensor, torch.FloatTensor(data.label)
+        img, label = data.torch_tensor, torch.tensor(data.label)
         img = self.transform(img)
 
-        return img, torch.FloatTensor([label])
+        return img, label
 
 
 class CycleGanDataset(Dataset):
@@ -73,7 +77,7 @@ class CycleGanDataset(Dataset):
         self.__image_size = image_output_size
         self.__transform = Compose([
             Resize(self.__image_size),
-            Normalization
+            DynamicRangeScaling()
         ])
 
     def __len__(self) -> int:
