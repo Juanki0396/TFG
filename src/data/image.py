@@ -4,6 +4,8 @@ import os
 from typing import Tuple, Union, Iterable, List
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from mpl_toolkits.axes_grid1 import ImageGrid
 import numpy as np
 import torch
 from scipy.ndimage import zoom
@@ -26,6 +28,23 @@ class Image:
         image = np.array(pil_Image.open(path))
         image = cls(image)
         return image
+
+    @staticmethod
+    def create_image_grid(images: List[Image], grid_size: Tuple[int, int]) -> Figure:
+
+        fig = plt.figure(figsize=grid_size)
+        grid = ImageGrid(fig, 111,  # similar to subplot(111)
+                         nrows_ncols=(1, len(images)),  # creates 1xn grid of axes
+                         axes_pad=0.1,  # pad between axes in inch.
+                         )
+
+        for ax, im in zip(grid, images):
+            # Iterating over the grid returns the Axes.
+            ax.imshow(im.image)
+            ax.axis("off")
+            ax.set_title(im.label)
+
+        return fig
 
     @staticmethod
     def standarize_bw_image(image: np.ndarray) -> np.ndarray:
@@ -108,7 +127,7 @@ class Image:
         image = pil_Image.fromarray(self.image)
         image.save(path)
 
-    def plot(self, tittle: str = None, cmap: str = "gray", figsize: Tuple[int, int] = (14, 8)) -> None:
+    def plot(self, title: str = None, cmap: str = "gray", figsize: Tuple[int, int] = (14, 8)) -> Figure:
         """Plot the image with the selected tittle, colormap and figsize.
 
         Args:
@@ -120,6 +139,8 @@ class Image:
         fig, axes = plt.subplots(ncols=1, nrows=1, figsize=figsize)
         axes.imshow(self.image, cmap=cmap)
         axes.axis("off")
-        axes.set_title(tittle)
+        if title is None:
+            title = self.label
+        axes.set_title(title)
 
         return fig
