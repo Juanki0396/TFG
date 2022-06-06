@@ -1,51 +1,71 @@
-
+from argparse import Namespace
 from itertools import chain
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import torch
 
 from . import networks
 from .base_model import BaseModel
+from ..options.cyclegan_options import CycleGanOptions
+from ..data.image import Image
 
 
 class CycleGan(BaseModel):
 
-    def __init__(self, net_G: str = "resnet", net_D: str = "patch", device: str = "cpu", lr: float = 1e-3):
+    @staticmethod
+    def set_scheduler(optimizer: torch.optim.Optimizer, options: Namespace) -> torch.optim.lr_scheduler.LambdaLR:
 
-        super().__init__()
+        def lambda_rule(epoch):
+            lr_l = 1.0 - max(0, epoch - options.epochs_constant + 1) / float(options.epochs_decay + 1)
+            return lr_l
 
-        self.device = device
-        self.name = f"cyclegan_{net_G}_{net_D}_lr_{lr:.2e}"
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
 
-        if net_G == "unet":
-            self.models["net_GA"] = networks.UnetGenerator(3, 3, 5).to(device)
-            self.models["net_GB"] = networks.UnetGenerator(3, 3, 5).to(device)
-        elif net_G == "resnet":
-            self.models["net_GA"] = networks.ResnetGenerator(3, 3).to(device)
-            self.models["net_GB"] = networks.ResnetGenerator(3, 3).to(device)
+        return scheduler
+
+    def __init__(self, parser: CycleGanOptions) -> None:
+
+        super().__init__(options=parser)
+
+        if self.options.net_G == "unet":
+            self.models["net_GA"] = networks.UnetGenerator(3, 3, 5).to(self.device)
+            self.models["net_GB"] = networks.UnetGenerator(3, 3, 5).to(self.device)
+        elif self.options.net_G == "resnet":
+            self.models["net_GA"] = networks.ResnetGenerator(3, 3).to(self.device)
+            self.models["net_GB"] = networks.ResnetGenerator(3, 3).to(self.device)
         else:
-            raise NotImplementedError(f"Generetor model {net_G} is not implemented.")
+            raise NotImplementedError(f"Generetor model {self.options.net_G} is not implemented.")
 
-        if net_D == "patch":
-            self.models["net_DA"] = networks.NLayerDiscriminator(3).to(device)
-            self.models["net_DB"] = networks.NLayerDiscriminator(3).to(device)
-        elif net_D == "pixel":
-            self.models["net_DA"] = networks.PixelDiscriminator(3).to(device)
-            self.models["net_DB"] = networks.PixelDiscriminator(3).to(device)
+        if self.options.net_D == "patch":
+            self.models["net_DA"] = networks.NLayerDiscriminator(3).to(self.device)
+            self.models["net_DB"] = networks.NLayerDiscriminator(3).to(self.device)
+        elif self.options.net_D == "pixel":
+            self.models["net_DA"] = networks.PixelDiscriminator(3).to(self.device)
+            self.models["net_DB"] = networks.PixelDiscriminator(3).to(self.device)
         else:
-            raise NotImplementedError(f"Discriminator model {net_D} is not implemented.")
+            raise NotImplementedError(f"Discriminator model {self.options.net_D} is not implemented.")
 
         self.criterions["gan"] = torch.nn.BCEWithLogitsLoss()
         self.criterions["cycle"] = torch.nn.L1Loss()
 
         self.optimizers["G"] = torch.optim.Adam(
             chain(self.models["net_GA"].parameters(), self.models["net_GB"].parameters()),
-            lr=lr
+            lr=self.options.learning_rate, betas=(self.options.beta, 0.999)
         )
         self.optimizers["D"] = torch.optim.Adam(
             chain(self.models["net_DA"].parameters(), self.models["net_DB"].parameters()),
-            lr=lr
+            lr=self.options.learning_rate, betas=(self.options.beta, 0.999)
         )
+
+        if not self.options.lr_constant:
+
+            self.schedulers = {}
+            self.schedulers["G"] = self.set_scheduler(self.optimizers["G"], self.options)
+            self.schedulers["D"] = self.set_scheduler(self.optimizers["D"], self.options)
+
+        else:
+
+            self.schedulers = None
 
     def set_input(self, input: Dict[str, torch.Tensor]) -> None:
 
@@ -94,7 +114,7 @@ class CycleGan(BaseModel):
 
     def update_parameters(self) -> Dict[str, float]:
 
-        self.forward()
+        super().update_parameters()
 
         self.set_requires_grad([self.models["net_DA"], self.models["net_DB"]], False)
         self.optimizers["G"].zero_grad()
@@ -106,27 +126,44 @@ class CycleGan(BaseModel):
         loss_D = self.backward_D()
         self.optimizers["D"].step()
 
-        loss_G.update(loss_D)
+        if self.schedulers is not None:
+            self.schedulers["G"].step()
+            self.schedulers["D"].step()
 
-        return loss_G
+        loss = {**loss_D, **loss_G}
 
-    def test(self) -> Dict[str, torch.Tensor]:
+        return loss
 
-        self.set_train_mode(False)
+    def validation(self) -> Tuple[List[Image], Dict[str, float]]:
+
+        super().validation()
+
         with torch.no_grad():
             self.forward()
             metric = self.compute_metric()
 
-        results = {
-            "real_A": self.real_A.detach(),
-            "fake_A": self.fake_A.detach(),
-            "rec_A": self.rec_A.detach(),
-            "real_B": self.real_B.detach(),
-            "fake_B": self.fake_A.detach(),
-            "rec_B": self.rec_A.detach(),
-        }
+        images = [
+            Image(self.fake_B.squeeze().cpu().detach(), "Fake_B"),
+            Image(self.fake_A.squeeze().cpu().detach(), "Fake_A"),
+            Image(self.rec_A.squeeze().cpu().detach(), "Cycle_A"),
+            Image(self.rec_B.squeeze().cpu().detach(), "Cycle_B")
+        ]
 
-        return results
+        return images, metric
 
     def compute_metric(self):
         pass
+
+    def inference(self, input: Dict[str, torch.Tensor] = None) -> List[Image]:
+
+        super().inference(input)
+
+        fake_B: torch.Tensor = self.models["net_GA"](input["A"].to(self.device))
+        fake_A: torch.Tensor = self.models["net_GB"](input["B"].to(self.device))
+
+        images = [
+            Image(fake_B.squeeze().cpu().detach(), "Fake_B"),
+            Image(fake_A.squeeze().cpu().detach(), "Fake_B")
+        ]
+
+        return images

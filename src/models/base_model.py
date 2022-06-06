@@ -1,25 +1,41 @@
 
 from abc import ABC, abstractmethod
 import os
-from typing import Any, Dict, List, Callable
+from typing import Any, Dict, List, Callable, Union
 
 import torch
+
+from ..options.base_options import BaseOptions
 
 
 class BaseModel(ABC):
 
-    def __init__(self):
+    def __init__(self, parser: BaseOptions):
         """Instanciate the networks, criterions and optimizers.
         """
-        self.name: str = None
+
+        self.options = parser.options
+
         self.models: Dict[str, torch.nn.Module] = {}
         self.criterions: Dict[str, Callable] = {}
         self.optimizers: Dict[str, torch.optim.Optimizer] = {}
         self.metric: Callable = None
 
+    @property
+    def name(self) -> str:
+        return self.options.name
+
+    @property
+    def save_path(self) -> str:
+        return os.path.join(self.options.saved_models_path, self.name)
+
+    @property
+    def device(self) -> str:
+        return self.options.device
+
     @abstractmethod
     def set_input(self, input: Dict[str, torch.Tensor]) -> None:
-        """This method will store the inputs of the model needed for the 
+        """Abstarct method that will store the inputs of the model needed for the 
         forward method
 
         Args:
@@ -29,45 +45,34 @@ class BaseModel(ABC):
 
     @abstractmethod
     def forward(self) -> None:
-        """Apply the forward step over the stored inputs and store the results.
+        """Abstract method that applies the forward step over the stored inputs and store the results.
         """
         pass
 
     @abstractmethod
-    def update_parameters(self) -> Dict[str, float]:
-        """Use the forward method and apply the backward step, updating the model weights.
+    def update_parameters(self) -> None:
+        """Abstract method that use the forward method and apply the backward step, updating the model weights.
         It also return in a dictionary the different losses obatined.
-
-        Returns:
-            Dict[str, float]: loss name with its value.
         """
         self.set_train_mode(True)
         self.forward()
         # Continue the implementation
 
     @abstractmethod
-    def validation(self) -> Dict[str, Any]:
-        """Apply the forward step and evaluate the losses and metrics over a validation example
-
-        Returns:
-            Dict[str, Any]: _description_
+    def validation(self) -> None:
+        """Apply the forward step and evaluate the losses and metrics over a validation example 
         """
         self.set_train_mode(False)
-        self.forward()
         # Continue the implementation
 
     @abstractmethod
-    def inference(self, input: Dict[str, torch.Tensor] = None) -> Dict[str, Any]:
-        """Implement the inference of the model. Input is set to None since generative model don't
-        need any input.
-
+    def inference(self, input: Union[Dict[str, torch.Tensor], torch.Tensor]) -> None:
+        """Implement the inference of the model. 
         Args:
-            input (Dict[str, torch.Tensor], optional): Defaults to None.
-
-        Returns:
-            Dict[str, Any]: Model outputs
+            input (Dict[str, torch.Tensor] | torch.Tensor)
         """
-        pass
+        self.set_train_mode(False)
+        # Continue the implementation
 
     def set_requires_grad(self, nets: List[torch.nn.Module], requires_grad=True) -> None:
         """Activate or deactivate the gradient computation of the selected nets.
@@ -93,7 +98,7 @@ class BaseModel(ABC):
             for model in self.models.values():
                 model.eval()
 
-    def save_model(self, save_dir: str) -> None:
+    def save_model(self, save_dir: str = None) -> None:
         """Creates or overwrite a save model folder, where the state dict is saved,
         in the selected saviing direrctory.
 
@@ -102,12 +107,12 @@ class BaseModel(ABC):
             save_dir (str): Directory where the model folder is created.
         """
 
-        model_dir = os.path.join(save_dir, self.name)
-        if not os.path.exists(model_dir):
-            os.mkdir(model_dir)
+        if save_dir is None:
+            save_dir = os.path.join(self.options.save_path, self.options.name)
+            os.mkdir(save_dir)
 
         for key, model in self.models.items():
-            path = os.path.join(model_dir, f"{key}.pth")
+            path = os.path.join(save_dir, f"{key}.pth")
             torch.save(model.state_dict(), path)
 
     def load_model(self, model_dir: str) -> None:
