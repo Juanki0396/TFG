@@ -1,7 +1,7 @@
 .venv/
 .vscode/
 Papers/
-Data/
+Data/*.docx
 .ipynb_checkpoints/
 *__pycache__*
 save_models/
