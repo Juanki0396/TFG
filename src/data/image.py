@@ -124,7 +124,7 @@ class Image:
 
         path = os.path.join(dir_path, file_name)
 
-        image = pil_Image.fromarray(self.image)
+        image = pil_Image.fromarray(self.image).convert("I")
         image.save(path)
 
     def plot(self, title: str = None, cmap: str = "gray", figsize: Tuple[int, int] = (14, 8)) -> Figure:

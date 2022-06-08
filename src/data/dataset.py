@@ -1,61 +1,58 @@
 
-import os
+
 import random
 from typing import Dict, Tuple, List
-from collections import namedtuple
-
 
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-from torchvision.transforms import Resize, Normalize, Compose
 
 from .image import Image
-from .data_transforms import RandomNoise, DynamicRangeScaling
+from .data_transforms import RandomNoise, DynamicRangeScaling, Resize, Compose, Transform
+from ..options.classifier_options import ClassifierOptions
 
 
-def generate_noisy_dataset(data: List[Image]):
+def generate_noisy_dataset(data: List[Image], std: float) -> List[Image]:
+    """Takes a list of images and add noise to half of them with a normal distribution
+    of mean 0 and the specified std. The transformed images are labeled with a 1 and the
+    others with o.
 
-    new_data = []
+    Args:
+        data (List[Image])
+        std (float)
+
+    Returns:
+        List[Image]
+    """
 
     labels = [1 if i <= (len(data)//2) else 0 for i in range(len(data))]
     random.shuffle(labels)
-
     random_transform = RandomNoise(0, 20)
+    new_data = []
 
     for i, label in enumerate(labels):
         img = data[i]
-        if label == 1:
 
+        if label == 1:
             img.image = random_transform(img.image)
             img.label = label
+
         else:
             img.label = label
+
         new_data.append(img)
+
     return new_data
-
-
-def generate_cycle_gan_dataset(data):
-
-    noisy_dataset = generate_noisy_dataset(data)
-    images_A = filter(lambda x: x[1] == 0, noisy_dataset)
-    images_B = filter(lambda x: x[1] == 1, noisy_dataset)
-    cyclegan_dataset = []
-    for tupA, tupB in zip(images_A, images_B):
-        data = {"A": tupA[0], "B": tupB[0]}
-        cyclegan_dataset.append(data)
-    return cyclegan_dataset
 
 
 class ImageDataset(Dataset):
 
-    def __init__(
-            self, dataset: List[Image]) -> None:
+    def __init__(self, dataset: List[Image], transforms: List[Transform] = None) -> None:
 
         super().__init__()
 
         self.dataset = dataset
-        self.transform = DynamicRangeScaling()
+        self.transform = Compose(transforms=transforms)
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -71,25 +68,28 @@ class ImageDataset(Dataset):
 
 class CycleGanDataset(Dataset):
 
-    def __init__(self, dataset: List[Dict[str, np.ndarray]], image_output_size: Tuple[int, int] = (256, 256)) -> None:
+    def __init__(self, dataset: List[Image], transforms: List[Transform] = None) -> None:
 
-        self.dataset = dataset
-        self.__image_size = image_output_size
-        self.__transform = Compose([
-            Resize(self.__image_size),
-            DynamicRangeScaling()
-        ])
+        self.dataset_A = list(filter(lambda image: image.label == "A", dataset))
+        self.dataset_B = list(filter(lambda image: image.label == "B", dataset))
+        self.transform = Compose(transforms=transforms)
+
+    def shuffle(self) -> None:
+
+        random.shuffle(self.dataset_A)
+        random.shuffle(self.dataset_B)
 
     def __len__(self) -> int:
-        return len(self.dataset)
+        return min(len(self.dataset_A), len(self.dataset_B))
 
     def __getitem__(self, index) -> Dict[str, np.ndarray]:
 
         data = {}
-        for key, x in self.dataset[index].items():
-            img = torch.from_numpy(np.squeeze(x.copy()).astype(np.float32)).unsqueeze(0).repeat(3, 1, 1)
-            img = self.__transform(img)
-            data[key] = img
+
+        for img in [self.dataset_A[index], self.dataset_B[index]]:
+            tensor = img.torch_tensor.repeat(3, 1, 1)
+            tensor = self.transform(tensor)
+            data[img.label] = tensor
 
         return data
 
