@@ -63,7 +63,10 @@ class ImageDataset(Dataset):
         img, label = data.torch_tensor, torch.tensor(data.label)
         img = self.transform(img)
 
-        return img, label
+        if isinstance(img, np.ndarray):
+            img = torch.from_numpy(img).double()
+
+        return img.float(), label
 
 
 class CycleGanDataset(Dataset):

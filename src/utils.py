@@ -27,7 +27,7 @@ def run_time(f: Callable) -> Callable:
     return wrapper
 
 
-def load_xray_data(dataset_path: str = "Data/x_ray") -> Tuple(List[Image], List[Image]):
+def load_xray_data(dataset_path: str = "Data/x_ray") -> Tuple[List[Image], List[Image]]:
     """Load Chest x rays train and test datasets.
 
     Args:

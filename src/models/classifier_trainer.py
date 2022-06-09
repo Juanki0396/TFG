@@ -39,7 +39,8 @@ class ClassifierTrainer(BaseTrainer):
 
         for imgs, labels in self.traning_dataloader:
 
-            self.model.set_input(imgs, labels)
+            input = {"images": imgs, "labels": labels}
+            self.model.set_input(input)
             loss = self.model.update_parameters()
             self.training_loss.append[loss]
 

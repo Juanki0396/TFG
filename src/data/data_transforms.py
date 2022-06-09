@@ -35,8 +35,12 @@ class Resize(Transform):
 
     def __call__(self, data: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
 
-        new_shape = np.array(self.new_shape)
+        new_shape = np.array(self.new_size)
         current_shape = np.array(data.shape)
+
+        if new_shape.shape[0] == current_shape.shape[0] - 1:
+            new_shape = np.insert(new_shape, 0, 3)
+
         resize_factor = new_shape / current_shape
 
         new_data = zoom(data, resize_factor, order=self.interpolation_order)
@@ -60,7 +64,7 @@ class Compose(Transform):
         super().__init__()
 
         if transforms is None or len(transforms) == 0:
-            transforms = [Identity]
+            transforms = [Identity()]
 
         self.transforms = transforms
 

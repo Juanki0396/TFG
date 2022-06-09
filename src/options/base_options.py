@@ -45,3 +45,11 @@ class BaseOptions(abc.ABC):
             for key, option in vars(opt).items():
                 text += f"{key}: {option}\n"
             save_file.write(text)
+
+    def print_options(self) -> None:
+
+        text = "MODEL OPTIONS".center(60, "-") + "\n"
+        for atribute, value in self.options.__dict__.items():
+            text += f"{atribute.capitalize():<25}---->{str(value):>25}\n"
+
+        print(text)

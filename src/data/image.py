@@ -84,7 +84,7 @@ class Image:
             torch.Tensor
         """
         numpy_copy = self.image.copy()
-        tensor = torch.from_numpy(numpy_copy).unsqueeze(dim=0)  # dims (1, H, W)
+        tensor = torch.from_numpy(numpy_copy).unsqueeze(dim=0).repeat([3, 1, 1])  # dims (1, H, W)
 
         return tensor
 

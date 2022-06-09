@@ -21,5 +21,5 @@ class ClassifierOptions(BaseOptions):
         self.parser.add_argument("--epochs", type=int, default=10, help="Set the number of epochs to train")
         # Data options
         self.parser.add_argument("--image_size", nargs=2, type=int, default=(64, 64), help="Select the image size")
-        self.parser.add_argument("--num_threads", type=int, default=5, help="Select the number of threads dedicated to data IO")
+        self.parser.add_argument("--num_threads", type=int, default=2, help="Select the number of threads dedicated to data IO")
         self.parser.add_argument("--batch_size", type=int, default=16, help="Select the batch size for training")
