@@ -112,7 +112,7 @@ class ImageClassifier(BaseModel):
             loss: torch.Tensor = self.criterions[self.options.network](self.pred, self.labels)
             metric = self.metric(self.pred, self.labels)
 
-        return loss, metric
+        return loss.cpu(), metric
 
     def inference(self, input: torch.Tensor) -> None:
 

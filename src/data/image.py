@@ -15,6 +15,8 @@ class Image:
     """Class that handles black and white images
     """
 
+    # TODO Create copy method
+
     @classmethod
     def from_path(cls, path: str) -> Image:
         """Creates a Image instance from path to file.

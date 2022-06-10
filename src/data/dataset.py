@@ -27,7 +27,7 @@ def generate_noisy_dataset(data: List[Image], std: float) -> List[Image]:
 
     labels = [1 if i <= (len(data)//2) else 0 for i in range(len(data))]
     random.shuffle(labels)
-    random_transform = RandomNoise(0, 20)
+    random_transform = RandomNoise(0, std)
     new_data = []
 
     for i, label in enumerate(labels):

@@ -1,7 +1,7 @@
 import abc
 import argparse
 import os
-from typing import Any
+from typing import Any, Union
 
 
 class BaseOptions(abc.ABC):
@@ -56,12 +56,15 @@ class BaseOptions(abc.ABC):
             os.makedirs(dir_path)
 
         with open(save_path, "wt") as save_file:
-            save_file.write(self.print_options())
+            save_file.write(self.print_options(return_str=True))
 
-    def print_options(self) -> None:
+    def print_options(self, return_str: bool = False) -> Union[None, str]:
 
         text = "MODEL OPTIONS".center(60, "-") + "\n"
         for atribute, value in self.options.__dict__.items():
             text += f"{atribute.capitalize():<25}---->{str(value):>25}\n"
+
+        if return_str:
+            return text
 
         print(text)
