@@ -11,6 +11,18 @@ class BaseOptions(abc.ABC):
         """
         self.parser = argparse.ArgumentParser()
 
+    def isnotebook(self) -> bool:
+        try:
+            shell = get_ipython().__class__.__name__  # Seems to be in the global name space when ipython is running
+            if shell == 'ZMQInteractiveShell':
+                return True   # Jupyter notebook or qtconsole
+            elif shell == 'TerminalInteractiveShell':
+                return True  # Terminal running IPython
+            else:
+                return False  # Other type (?)
+        except NameError:
+            return False      # Probably standard Python interpreter
+
     @abc.abstractmethod
     def read_parameters(self) -> None:
         """Abstract method that defines model options.
@@ -23,7 +35,10 @@ class BaseOptions(abc.ABC):
     def gather_options(self) -> None:
         """Parse args to store them in the object
         """
-        self.options = self.parser.parse_args()
+        if self.isnotebook():
+            self.options = self.parser.parse_args("")
+        else:
+            self.options = self.parser.parse_args()
 
     def rewrite_option(self, option_name: str, value: Any) -> None:
         if hasattr(self.options, option_name):
@@ -31,20 +46,17 @@ class BaseOptions(abc.ABC):
         else:
             raise ValueError(f"Option {option_name} does not exist")
 
-    def save_options(self) -> None:
+    def save_options(self, dir_path: str) -> None:
 
         opt = self.options
-        saving_dir = os.path.join(opt.saved_models_dir, opt.name)
-        save_path = os.path.join(saving_dir, "options.txt")
 
-        if not os.path.exists(saving_dir):
-            os.makedirs(saving_dir)
+        save_path = os.path.join(dir_path, "options.txt")
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
 
         with open(save_path, "wt") as save_file:
-            text = "MODEL OPTIONS".center(100, "-") + "\n"
-            for key, option in vars(opt).items():
-                text += f"{key}: {option}\n"
-            save_file.write(text)
+            save_file.write(self.print_options())
 
     def print_options(self) -> None:
 

@@ -23,3 +23,6 @@ class ClassifierOptions(BaseOptions):
         self.parser.add_argument("--image_size", nargs=2, type=int, default=(64, 64), help="Select the image size")
         self.parser.add_argument("--num_threads", type=int, default=2, help="Select the number of threads dedicated to data IO")
         self.parser.add_argument("--batch_size", type=int, default=16, help="Select the batch size for training")
+        self.parser.add_argument("--model_dynamic_range", nargs=2, type=float, default=(-2, 2), help="Select the dynamic range of the input images")
+        self.parser.add_argument("--crop_dynamic_range", nargs=2, type=float, default=(0, 6000),
+                                 help="Select the dynamic range images should have before being rescaled")

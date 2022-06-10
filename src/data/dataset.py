@@ -60,11 +60,13 @@ class ImageDataset(Dataset):
     def __getitem__(self, index) -> Tuple[torch.Tensor, int]:
 
         data = self.dataset[index]
-        img, label = data.torch_tensor, torch.tensor(data.label)
+        img, label = data.torch_tensor, torch.tensor(data.label).float()
         img = self.transform(img)
 
         if isinstance(img, np.ndarray):
             img = torch.from_numpy(img).double()
+
+        label = label.unsqueeze(dim=0)
 
         return img.float(), label
 

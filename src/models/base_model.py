@@ -14,6 +14,7 @@ class BaseModel(ABC):
         """Instanciate the networks, criterions and optimizers.
         """
 
+        self.parser = parser
         self.options = parser.options
 
         self.models: Dict[str, torch.nn.Module] = {}
@@ -108,12 +109,15 @@ class BaseModel(ABC):
         """
 
         if save_dir is None:
-            save_dir = os.path.join(self.options.save_path, self.options.name)
-            os.mkdir(save_dir)
+            save_dir = os.path.join(self.options.saved_models_dir, self.options.name)
+
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
 
         for key, model in self.models.items():
             path = os.path.join(save_dir, f"{key}.pth")
             torch.save(model.state_dict(), path)
+            self.parser.save_options(save_dir)
 
     def load_model(self, model_dir: str) -> None:
         """Load model state dicts stored in the model directory

@@ -37,28 +37,35 @@ class ClassifierTrainer(BaseTrainer):
         """Run a training pass over the whole training dataset and store the batch losses.
         """
 
-        for imgs, labels in self.traning_dataloader:
+        for i, (imgs, labels) in enumerate(self.traning_dataloader):
 
+            print(f"\r Running training batch {i+1}/{len(self.traning_dataloader)}", end="")
             input = {"images": imgs, "labels": labels}
             self.model.set_input(input)
             loss = self.model.update_parameters()
-            self.training_loss.append[loss]
+            self.training_loss.append(loss)
 
             del imgs, labels
+
+        print("\nTraining epoch fisnished succesfully")
 
     @run_time
     def validation_epoch(self):
         """Run a vladiation step over the whole validating dataset and store the bath losses and metrics.
         """
 
-        for imgs, labels in self.validation_dataloader:
+        for i, (imgs, labels) in enumerate(self.validation_dataloader):
 
-            self.model.set_input(imgs, labels)
+            print(f"\r Running validation batch {i+1}/{len(self.validation_dataloader)}", end="")
+            input = {"images": imgs, "labels": labels}
+            self.model.set_input(input)
             loss, metric = self.model.validation()
             self.validation_loss.append(loss)
             self.metric.append(metric)
 
             del imgs, labels
+
+        print("\nValidation epoch fisnished succesfully")
 
     @run_time
     def train_model(self, epochs: int = None):

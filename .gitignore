@@ -4,5 +4,5 @@ Papers/
 Data/*.docx
 .ipynb_checkpoints/
 *__pycache__*
-save_models/
+saved_models/
 todo.md
