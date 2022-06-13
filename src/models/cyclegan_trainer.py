@@ -28,7 +28,7 @@ class CycleGanTrainer(BaseTrainer):
 
         for i, input in enumerate(self.traning_dataloader):
 
-            print(f"\r Running training batch {i+1}/{len(self.traning_dataloader)}", end="")
+            print(f"\rRunning training batch {i+1}/{len(self.traning_dataloader)}", end="")
             self.model.set_input(input)
             batch_losses = self.model.update_parameters()
             self.losses.append(batch_losses)
@@ -66,6 +66,8 @@ class CycleGanTrainer(BaseTrainer):
                 self.model_saved_loss["loss_GA"] = loss_GA
                 self.model_saved_loss["loss_GB"] = loss_GB
                 print(f"New model saved with metrics -> loss_GA: {loss_GA}  ;  loss_GB: {loss_GB}")
+            else:
+                print(f"Model has not Improved -> loss_GA: {loss_GA}  ;  loss_GB: {loss_GB}")
 
         self.validation_epoch()
 
@@ -94,5 +96,6 @@ class CycleGanTrainer(BaseTrainer):
         ax2.set_xlabel("Epochs")
         ax2.set_ylabel("BCE with Logistic")
         ax2.set_title("Discriminators")
+        ax2.legend()
 
         return fig

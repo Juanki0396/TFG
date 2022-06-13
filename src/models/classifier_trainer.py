@@ -39,7 +39,7 @@ class ClassifierTrainer(BaseTrainer):
 
         for i, (imgs, labels) in enumerate(self.traning_dataloader):
 
-            print(f"\r Running training batch {i+1}/{len(self.traning_dataloader)}", end="")
+            print(f"\rRunning training batch {i+1}/{len(self.traning_dataloader)}", end="")
             input = {"images": imgs, "labels": labels}
             self.model.set_input(input)
             loss = self.model.update_parameters()
@@ -56,7 +56,7 @@ class ClassifierTrainer(BaseTrainer):
 
         for i, (imgs, labels) in enumerate(self.validation_dataloader):
 
-            print(f"\r Running validation batch {i+1}/{len(self.validation_dataloader)}", end="")
+            print(f"\rRunning validation batch {i+1}/{len(self.validation_dataloader)}", end="")
             input = {"images": imgs, "labels": labels}
             self.model.set_input(input)
             loss, metric = self.model.validation()
