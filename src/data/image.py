@@ -32,7 +32,7 @@ class Image:
         return image
 
     @staticmethod
-    def create_image_grid(images: List[Image], grid_size: Tuple[int, int]) -> Figure:
+    def create_image_grid(images: List[Image], grid_size: Tuple[int, int] = (10, 10)) -> Figure:
 
         fig = plt.figure(figsize=grid_size)
         grid = ImageGrid(fig, 111,  # similar to subplot(111)
