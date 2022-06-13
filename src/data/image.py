@@ -18,17 +18,17 @@ class Image:
     # TODO Create copy method
 
     @classmethod
-    def from_path(cls, path: str) -> Image:
+    def from_path(cls, path: str, label: str) -> Image:
         """Creates a Image instance from path to file.
 
         Args:
             paths (str): path of the image to load.
-
+            label (str): image label
         Returns:
             Image
         """
         image = np.array(pil_Image.open(path))
-        image = cls(image)
+        image = cls(image, label)
         return image
 
     @staticmethod
@@ -42,7 +42,7 @@ class Image:
 
         for ax, im in zip(grid, images):
             # Iterating over the grid returns the Axes.
-            ax.imshow(im.image)
+            ax.imshow(im.image, cmap="gray")
             ax.axis("off")
             ax.set_title(im.label)
 

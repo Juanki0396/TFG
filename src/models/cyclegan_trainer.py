@@ -1,4 +1,5 @@
 
+from calendar import EPOCH
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.utils.data import Dataset
@@ -42,7 +43,7 @@ class CycleGanTrainer(BaseTrainer):
         for input in self.validation_dataloader:
             self.model.set_input(input)
             images, _ = self.model.validation()
-            Image.create_image_grid(images)
+            fig = Image.create_image_grid(images, grid_size=(14, 10))
 
         print("Validation epoch fisnished succesfully")
 
@@ -52,6 +53,8 @@ class CycleGanTrainer(BaseTrainer):
         epochs = self.model.options.epochs_constant + self.model.options.epochs_decay
 
         for epoch in range(epochs):
+
+            print(f"EPOCH {epoch}".center(60, "-"))
 
             self.train_epoch()
 
@@ -64,8 +67,7 @@ class CycleGanTrainer(BaseTrainer):
                 self.model_saved_loss["loss_GB"] = loss_GB
                 print(f"New model saved with metrics -> loss_GA: {loss_GA}  ;  loss_GB: {loss_GB}")
 
-            if epoch % 10 == 0:
-                self.validation_epoch()
+        self.validation_epoch()
 
     def plot_training_losses(self):
 
