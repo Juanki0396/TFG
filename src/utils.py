@@ -48,6 +48,14 @@ def load_xray_data(dataset_path: str = "Data/x_ray") -> List[Image]:
     return data
 
 
+def load_us_data(dataset_path: str = "Data/USAnotAI") -> List[Image]:
+
+    files = [file for file in os.scandir(dataset_path) if file.name != "source.md"]
+    data = [Image.from_path(file.path, file.name.split("-")[0]) for file in files]
+
+    return data
+
+
 def refactor_dataset(data: List[Image], ratio_validation: float = 0.2) -> Tuple[List[Image], ...]:
     """Divide data into training and validation datasets with the selected ratios.
 
