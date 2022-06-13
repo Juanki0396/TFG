@@ -27,28 +27,61 @@ def run_time(f: Callable) -> Callable:
     return wrapper
 
 
-def load_xray_data(dataset_path: str = "Data/x_ray") -> Tuple[List[Image], List[Image]]:
-    """Load Chest x rays train and test datasets.
+def load_xray_data(dataset_path: str = "Data/x_ray") -> List[Image]:
+    """Load Chest x rays dataset.
 
     Args:
         dataset_path (str, optional): Defaults to "Data/x_ray".
 
     Returns:
-        Tuple(List[Image], List[Image]): Training data y test data
+        List[Image]
     """
     train_path = os.path.join(dataset_path, "train_SERAM.npy")
     test_path = os.path.join(dataset_path, "test1_SERAM.npy")
 
-    datasets = []
+    data = []
 
     for path in [train_path, test_path]:
         array = np.load(path, allow_pickle=True)
-        data = [Image(img, label) for img, label in array]
-        datasets.append(data)
+        data = data + [Image(img, label) for img, label in array]
 
-    train_data, test_data = datasets
+    return data
 
-    return train_data, test_data
+
+def refactor_dataset(data: List[Image], ratio_validation: float = 0.2) -> Tuple[List[Image], ...]:
+    """Divide data into training and validation datasets with the selected ratios.
+
+    Args:
+        data (List[Image]): 
+        ratio_validation (float, optional): . Defaults to 0.2.
+
+    Returns:
+        Tuple[List[Image], ...]: training and validation datsets
+    """
+    random.shuffle(data)
+    n_validation = int(len(data) * ratio_validation)
+    training_data = data[n_validation:]
+    validation_data = data[:n_validation]
+
+    return training_data, validation_data
+
+
+def refactor_cyclegan_datasets(data: List[Image], n_validation: int = 10) -> Tuple[List[Image], ...]:
+    """Obtain the training and validation datasets for cyclegan from data list. Cyclegan
+    only needs validation dataset for visual inspection, so only a few images are need it.
+
+    Args:
+        data (List[Image])
+        n_validation (int, optional). Defaults to 10.
+
+    Returns:
+        Tuple[List[Image], ...]
+    """
+    random.shuffle(data)
+    training_data = data[n_validation:]
+    validation_data = data[:n_validation]
+
+    return training_data, validation_data
 
 
 def hist_integral(y: List[float], x: List[float]) -> float:
@@ -67,31 +100,49 @@ def hist_integral(y: List[float], x: List[float]) -> float:
     return area
 
 
-def obtain_histogram(data: List[Image], sample_size: int, title: str = None, percentage: float = 0.99) -> Figure:
-    """Compute the pixel value histogram for a collection of images using a sample of the specified size. Also computes
-    the set in which a certain percentage of the total pixel resides.
+def obtain_voxel_range(data: List[Image], sample_size: int, extreme_percent: int = 2) -> Tuple[float, float]:
+    """Obtain the limit values of voxels which exclude the percentage of the data defined by the user.
+
+    Args:
+        data (List[Image])
+        sample_size (int)
+        extreme_percent (int, optional): Defaults to 2.
+
+    Returns:
+        Tuple[float, float]
+    """
+
+    sample = [img.image.flatten() for img in random.sample(data, sample_size)]
+    voxels = np.concatenate(sample)
+
+    min_voxel = np.percentile(voxels, extreme_percent//2)
+    max_voxel = np.percentile(voxels, 100 - extreme_percent//2)
+    voxel_range = (min_voxel, max_voxel)
+
+    return voxel_range
+
+
+def obtain_histogram(data: List[Image], sample_size: int, title: str = None) -> Figure:
+    """Compute the pixel value histogram for a collection of images using a sample of the specified size. 
 
     Args:
         data (List[Image]): List of images
         sample_size (int): Number of image from which the histogram is computed
         title (str, optional): Title shown in the histogram. Defaults to None.
-        percentage (float, optional): Defaults to 0.99.
 
     Returns:
         Figure: _description_
     """
+    if sample_size > len(data):
+        sample_size = len(data)
 
     sample = [img.image.flatten() for img in random.sample(data, sample_size)]
     voxels = np.concatenate(sample)
 
     fig, ax = plt.subplots(1, 1)
     freq, bins, _ = ax.hist(voxels, bins=100, density=True)  # Make histogram
-    area = hist_integral(freq, bins)  # Integral for each x
-    most_dist = bins[len(area[area < percentage])]  # Take the max pixel value that fits in the percentage of the total
     ax.set_xlabel("Voxel value")
     ax.set_ylabel("Frequency")
     ax.set_title(title)
-
-    print(f"{title} -> {percentage * 100:.1f}% of voxels are between [{bins[0]:.1f}, {most_dist:.1f}]")
 
     return fig

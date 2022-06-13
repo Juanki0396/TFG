@@ -45,6 +45,29 @@ def generate_noisy_dataset(data: List[Image], std: float) -> List[Image]:
     return new_data
 
 
+def generate_cyclegan_dataset(data: List[Image], std: float) -> List[Image]:
+    """Generate a cyclegan dataset where dataset A are normal images and dataset
+    B are noisy images.
+
+    Args:
+        data (List[Image])
+        std (float): Standard deviation of the added noise.
+
+    Returns:
+        List[Image]
+    """
+    new_data = generate_noisy_dataset(data, std)
+    for image in new_data:
+        if image.label == 1:
+            image.label = "B"
+        elif image.label == 0:
+            image.label = "A"
+        else:
+            raise ValueError(f"Image label is not 1 or 0 -> {image.label}")
+
+    return new_data
+
+
 class ImageDataset(Dataset):
 
     def __init__(self, dataset: List[Image], transforms: List[Transform] = None) -> None:
@@ -64,11 +87,11 @@ class ImageDataset(Dataset):
         img = self.transform(img)
 
         if isinstance(img, np.ndarray):
-            img = torch.from_numpy(img).double()
+            img = torch.from_numpy(img).float()
 
         label = label.unsqueeze(dim=0)
 
-        return img.float(), label
+        return img, label
 
 
 class CycleGanDataset(Dataset):
@@ -92,18 +115,12 @@ class CycleGanDataset(Dataset):
         data = {}
 
         for img in [self.dataset_A[index], self.dataset_B[index]]:
-            tensor = img.torch_tensor.repeat(3, 1, 1)
+            tensor = img.torch_tensor
             tensor = self.transform(tensor)
+
+            if isinstance(tensor, np.ndarray):
+                tensor = torch.from_numpy(tensor).float()
+
             data[img.label] = tensor
 
         return data
-
-
-if __name__ == "__main__":
-
-    train_data_path = "/home/quito/Fisica/tfg/Data/prototype/train_SERAM.npy"
-
-    dataset = ImageDataset(train_data_path, random_labels=True)
-
-    img, label = dataset[0]
-    print(img.shape)
