@@ -25,7 +25,7 @@ class CycleGan(BaseModel):
 
     def __init__(self, parser: CycleGanOptions) -> None:
 
-        super().__init__(options=parser)
+        super().__init__(parser=parser)
 
         if self.options.net_G == "unet":
             self.models["net_GA"] = networks.UnetGenerator(3, 3, 5).to(self.device)

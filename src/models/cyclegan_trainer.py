@@ -25,19 +25,26 @@ class CycleGanTrainer(BaseTrainer):
     @run_time
     def train_epoch(self):
 
-        for input in self.traning_dataloader:
+        for i, input in enumerate(self.traning_dataloader):
 
+            print(f"\r Running training batch {i+1}/{len(self.traning_dataloader)}", end="")
             self.model.set_input(input)
             batch_losses = self.model.update_parameters()
             self.losses.append(batch_losses)
 
+        print("\nTraining epoch fisnished succesfully")
+
     @run_time
     def validation_epoch(self):
+
+        print("Running validation epoch")
 
         for input in self.validation_dataloader:
             self.model.set_input(input)
             images, _ = self.model.validation()
             Image.create_image_grid(images)
+
+        print("Validation epoch fisnished succesfully")
 
     @run_time
     def train_model(self):
