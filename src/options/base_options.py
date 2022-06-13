@@ -32,10 +32,10 @@ class BaseOptions(abc.ABC):
         self.parser.add_argument("--device", type=str, default="cpu", help="Set the device that pytorch will use for the model: (cpu, cuda:0, ...)")
         self.parser.add_argument("--saved_models_dir", type=str, default="./saved_models")
 
-    def gather_options(self) -> None:
+    def gather_options(self, force: bool = False) -> None:
         """Parse args to store them in the object
         """
-        if self.isnotebook():
+        if self.isnotebook() or force:
             self.options = self.parser.parse_args("")
         else:
             self.options = self.parser.parse_args()
