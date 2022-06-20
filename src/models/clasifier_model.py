@@ -4,7 +4,7 @@ import torch
 
 from . import networks
 from .base_model import BaseModel
-from .losses import binary_classification_accuracy
+from .losses import binary_classification_accuracy, multiclass_accuracy
 from ..options.classifier_options import ClassifierOptions
 
 
@@ -38,6 +38,8 @@ class ImageClassifier(BaseModel):
 
         if metric_name == "Accuracy" and self.n_labels == 1:
             metric = binary_classification_accuracy(self.threshold)
+        elif metric_name == "Accuracy" and self.n_labels > 1:
+            metric = multiclass_accuracy
         else:
             raise NotImplementedError(f"Metric {metric_name} has not been implmented")
 
@@ -77,20 +79,20 @@ class ImageClassifier(BaseModel):
         """Applies the backward step of the model, computing the loss, the gradients and updating parameters.
 
         Returns:
-            float: loss value
+            float: loss 
         """
         loss: torch.Tensor = self.criterions[self.options.network](self.pred, self.labels)
         self.optimizers[self.options.network].zero_grad()
         loss.backward()
         self.optimizers[self.options.network].step()
 
-        return loss.item()
+        return loss.cpu().item()
 
     def update_parameters(self) -> float:
         """Applyis the forward and backward steps and returns the loss
 
         Returns:
-            float: loss value
+            float: loss 
         """
 
         super().update_parameters()  # Forward
@@ -112,7 +114,7 @@ class ImageClassifier(BaseModel):
             loss: torch.Tensor = self.criterions[self.options.network](self.pred, self.labels)
             metric = self.metric(self.pred, self.labels)
 
-        return loss.cpu(), metric
+        return loss.cpu().item(), metric
 
     def inference(self, input: torch.Tensor) -> None:
 
@@ -120,7 +122,7 @@ class ImageClassifier(BaseModel):
         with torch.no_grad():
             predictions: torch.Tensor = self.models[self.options.network](input.to(self.device))
 
-        if self.options.n_classes == 1:
+        if self.n_labels == 1:
             return predictions.cpu() > self.threshold
         else:
             return torch.argmax(predictions, dim=1).cpu()

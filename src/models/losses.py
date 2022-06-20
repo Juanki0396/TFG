@@ -25,12 +25,30 @@ def binary_classification_accuracy(threshold: float = 0.5) -> Callable:
         Returns:
             float: 
         """
-        predictions = predictions.reshape((-1))
+        predictions = (predictions.reshape((-1)) > threshold).type(torch.float)
         truth = truth.reshape((-1))
 
-        n = len(predictions)
-        total = ((predictions > threshold) == truth).type(torch.float).sum().item() / n
+        total = torch.eq(predictions, truth).mean().item()
 
         return total
 
     return accuracy
+
+
+def multiclass_accuracy(predictions: torch.Tensor, truth: torch.Tensor) -> float:
+    """Evaluates the classification accuracy  for multiclass problems. In this case no threshold 
+    is need since the most likely class is chosen as the classfication result.
+
+    Args:
+        predictions (torch.Tensor): N_samplesxClasses tensor obtained from the model
+        truth (torch.Tensor): N_samplesxClasses tensor with correct outputs
+
+    Returns:
+        float: percent of correct predictions
+    """
+    predictions = predictions.argmax(1).reshape(-1)
+    truth = truth.reshape(-1)
+
+    total = torch.eq(predictions, truth).mean().item()
+
+    return total
