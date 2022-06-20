@@ -127,5 +127,6 @@ class BaseModel(ABC):
         """
 
         for file in os.scandir(model_dir):
-            net_name = file.name.split(".")[0]
-            self.models[net_name].load_state_dict(torch.load(file.path))
+            if file.name.endswith((".pth", ".pt")):
+                net_name = file.name.split(".")[0]
+                self.models[net_name].load_state_dict(torch.load(file.path))

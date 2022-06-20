@@ -46,9 +46,10 @@ def multiclass_accuracy(predictions: torch.Tensor, truth: torch.Tensor) -> float
     Returns:
         float: percent of correct predictions
     """
-    predictions = predictions.argmax(1).reshape(-1)
+
+    predictions = predictions.argmax(1).reshape(-1).to(torch.int64)
     truth = truth.reshape(-1)
 
-    total = torch.eq(predictions, truth).mean().item()
+    total = torch.eq(predictions, truth).to(torch.float32).mean().item()
 
     return total

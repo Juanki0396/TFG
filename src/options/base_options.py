@@ -53,15 +53,35 @@ class BaseOptions(abc.ABC):
 
     def save_options(self, dir_path: str) -> None:
 
-        opt = self.options
-
         save_path = os.path.join(dir_path, "options.txt")
-
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
         with open(save_path, "wt") as save_file:
             save_file.write(self.print_options(return_str=True))
+
+    def load_options(self, path: str) -> None:
+
+        with open(path, "r") as file:
+            text = file.readlines()
+            for i, line in enumerate(text):
+                if i == 0:
+                    continue
+                argument, value = [word.strip() for word in line.split("---->")]
+                if "(" in value:
+                    value = eval(value)
+                elif "." in value:
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        pass
+                else:
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        pass
+
+                self.rewrite_option(argument.lower(), value)
 
     def print_options(self, return_str: bool = False) -> Union[None, str]:
 

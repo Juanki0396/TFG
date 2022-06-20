@@ -19,10 +19,11 @@ def run_time(f: Callable) -> Callable:
         f (Callable): Function to decorate.
     """
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        t = time.time()
+
+        t = time.perf_counter()
         result = f(*args, **kwargs)
-        t = time.time() - t
-        print(f"Running time -> {datetime.timedelta(seconds=t//1)}")
+        t = time.perf_counter() - t
+        print(f"Running time of {f.__name__}-> {datetime.timedelta(seconds=t//1,milliseconds=t%1*1000)}")
         return result
     return wrapper
 

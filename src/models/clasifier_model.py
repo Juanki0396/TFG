@@ -1,3 +1,5 @@
+from __future__ import annotations
+import os
 from typing import Dict, Callable, Tuple
 
 import torch
@@ -9,6 +11,18 @@ from ..options.classifier_options import ClassifierOptions
 
 
 class ImageClassifier(BaseModel):
+
+    @classmethod
+    def load_pretrained_model(cls, model_path: str) -> Tuple[ClassifierOptions, ImageClassifier]:
+
+        parser_path = os.path.join(model_path, "options.txt")
+        parser = ClassifierOptions()
+        parser.load_options(parser_path)
+        parser.print_options()
+        model = cls(parser)
+        model.load_model(model_path)
+
+        return parser, model
 
     def __init__(self, parser: ClassifierOptions):
         """Instanciate a ImageClassifier with the defined options.
@@ -125,4 +139,4 @@ class ImageClassifier(BaseModel):
         if self.n_labels == 1:
             return predictions.cpu() > self.threshold
         else:
-            return torch.argmax(predictions, dim=1).cpu()
+            return torch.argmax(predictions, dim=1).cpu().item()
