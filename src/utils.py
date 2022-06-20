@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import numpy as np
 
-from .data.image import Image
+from .data.image import Ultrasound, Image
 
 
 def run_time(f: Callable) -> Callable:
@@ -48,10 +48,12 @@ def load_xray_data(dataset_path: str = "Data/x_ray") -> List[Image]:
     return data
 
 
-def load_us_data(dataset_path: str = "Data/USAnotAI") -> List[Image]:
+def load_us_data(dataset_path: str = "Data/USAnotAI") -> List[Ultrasound]:
 
-    files = [file for file in os.scandir(dataset_path) if file.name != "source.md"]
+    files = [file for file in os.scandir(dataset_path) if file.name not in ("source.md", "cone.png")]
+    cone = Image.from_path(os.path.join(dataset_path, "cone.png"), "cone")
     data = [Image.from_path(file.path, file.name.split("-")[0]) for file in files]
+    data = [Ultrasound(img.image, img.label, cone.image) for img in data]
 
     return data
 

@@ -10,6 +10,11 @@ class BaseOptions(abc.ABC):
         """Instanciate a BaseOptions object by reading and parsing programm parameters
         """
         self.parser = argparse.ArgumentParser()
+        self.read_parameters()
+        self.gather_options()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.options, name)
 
     def isnotebook(self) -> bool:
         try:

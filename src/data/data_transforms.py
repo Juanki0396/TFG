@@ -14,13 +14,13 @@ class Transform(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def __call__(self, data: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
         """Apply the transformation to the input data and return it.
 
         Args:
-            data (Union[torch.Tensor, np.ndarray]): input data to transform
+            data (torch.Tensor): input data to transform
         Returns:
-            Union[torch.Tensor, np.ndarray]: transformed data
+            torch.Tensor: transformed data
         """
         pass
 
@@ -33,7 +33,7 @@ class Resize(Transform):
         self.new_size = new_size
         self.interpolation_order = interpolation_order
 
-    def __call__(self, data: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
 
         new_shape = np.array(self.new_size)
         current_shape = np.array(data.shape)
@@ -44,6 +44,7 @@ class Resize(Transform):
         resize_factor = new_shape / current_shape
 
         new_data = zoom(data, resize_factor, order=self.interpolation_order)
+        new_data = torch.from_numpy(new_data)
 
         return new_data
 
@@ -53,7 +54,7 @@ class Identity(Transform):
     def __init__(self) -> None:
         super().__init__()
 
-    def __call__(self, data: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
         return data
 
 
@@ -68,7 +69,7 @@ class Compose(Transform):
 
         self.transforms = transforms
 
-    def __call__(self, data: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
 
         for transform in self.transforms:
             data = transform(data)
@@ -91,7 +92,7 @@ class RandomNoise(Transform):
         self.mean = mean
         self.sd = sd
 
-    def __call__(self, data: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
         """Add a noise filter to the data.
 
         Args:
@@ -100,7 +101,7 @@ class RandomNoise(Transform):
         Returns:
             Union[torch.Tensor, np.ndarray]
         """
-        noise = np.random.normal(loc=self.mean, scale=self.sd, size=data.shape)
+        noise = torch.normal(mean=self.mean, std=self.sd, size=data.shape)
         return data + noise
 
 
@@ -121,13 +122,13 @@ class DynamicRangeScaling(Transform):
         self.new_range = new_range
         self.crop_range = crop_range
 
-    def __call__(self, data: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
 
         crop_range = self.crop_range
         new_range = self.new_range
 
         if crop_range is None:
-            crop_range = (data.min(), data.max())
+            crop_range = (data.min().item(), data.max().item())
         if new_range is None:
             new_range = (-1, 1)
 

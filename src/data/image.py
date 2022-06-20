@@ -8,14 +8,12 @@ from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import ImageGrid
 import numpy as np
 import torch
-from scipy.ndimage import zoom
+from scipy.ndimage import zoom, binary_fill_holes
 
 
 class Image:
     """Class that handles black and white images
     """
-
-    # TODO Create copy method
 
     @classmethod
     def from_path(cls, path: str, label: str) -> Image:
@@ -62,6 +60,11 @@ class Image:
         if image.ndim not in (2, 3):
             raise ValueError(f"Image has {image.ndim} dimensions. Images should have 2 or 3 dimensions.")
 
+        channel_axis = np.argmin(image.shape)
+
+        if channel_axis != 0:
+            image = np.swapaxes(image, axis1=0, axis2=channel_axis)
+
         if image.ndim == 3:
 
             channel_axis = np.argmin(image.shape)  # Channel should be the smallest dim for 2d images
@@ -76,6 +79,9 @@ class Image:
 
         self.image = Image.standarize_bw_image(image)
         self.label = label
+
+    def __copy__(self) -> Image:
+        return Image(self.image.copy(), self.label)
 
     @property
     def torch_tensor(self) -> torch.Tensor:
@@ -109,7 +115,7 @@ class Image:
 
         return self
 
-    def save_image(self, dir_path: str, file_name: str) -> None:
+    def save_image(self, dir_path: str, file_name: str, pil_convert_mode: str = "RGB") -> None:
         """Save the image in the specified path. File name can contain the extension, if not it is set to png.
 
         Args:
@@ -126,7 +132,7 @@ class Image:
 
         path = os.path.join(dir_path, file_name)
 
-        image = pil_Image.fromarray(self.image).convert("I")
+        image = pil_Image.fromarray(self.image).convert(pil_convert_mode)
         image.save(path)
 
     def plot(self, title: str = None, cmap: str = "gray", figsize: Tuple[int, int] = (14, 8)) -> Figure:
@@ -146,3 +152,34 @@ class Image:
         axes.set_title(title)
 
         return fig
+
+
+class Ultrasound(Image):
+
+    @staticmethod
+    def create_cone_grid(images: List[Ultrasound], grid_size: Tuple[int, int] = (10, 10)) -> Figure:
+        images = [Image(us.cone_array, us.label) for us in images]
+        return Image.create_image_grid(images, grid_size)
+
+    def __init__(self, image: Union[np.ndarray, torch.Tensor], label: Union[str, float, int] = None, cone: np.ndarray = None) -> None:
+        """It is just an Image instance that tracks us cone position
+
+        Args:
+            image (Union[np.ndarray, torch.Tensor]): US array
+            label (Union[str, float, int], optional): Defaults to None.
+            cone np.ndarray: mask for cone position
+        """
+        super().__init__(image, label)
+
+        if cone is None:
+            self.cone_array = binary_fill_holes(self.image <= self.image.min() + 2).astype(np.bool8)
+        elif np.all(np.equal(self.image.shape, cone.shape)):
+            self.cone_array = cone
+        else:
+            raise ValueError(f"Cone has not same shape as image: {cone.shape} != {self.image.shape}")
+
+    def __copy__(self) -> Ultrasound:
+        return Ultrasound(self.image.copy(), self.label)
+
+    def dark_cone(self) -> None:
+        self.image[self.cone_array] = 0
