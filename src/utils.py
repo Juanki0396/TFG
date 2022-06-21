@@ -54,7 +54,9 @@ def load_us_data(dataset_path: str = "Data/USAnotAI") -> List[Ultrasound]:
     files = [file for file in os.scandir(dataset_path) if file.name not in ("source.md", "cone.png")]
     cone = Image.from_path(os.path.join(dataset_path, "cone.png"), "cone")
     data = [Image.from_path(file.path, file.name.split("-")[0]) for file in files]
-    data = [Ultrasound(img.image, img.label, cone.image) for img in data]
+    data = [Ultrasound(img.image - img.image.min(), img.label, cone.image) for img in data]
+    for us in data:
+        us.dark_cone()
 
     return data
 
@@ -152,7 +154,8 @@ def obtain_histogram(data: List[Image], sample_size: int, title: str = None) -> 
 
     fig, ax = plt.subplots(1, 1)
     freq, bins, _ = ax.hist(voxels, bins=100, density=True)  # Make histogram
-    ax.set_xlabel("Voxel value")
+    ax.set_xlim(left=0 if voxels.min() > 0 else voxels.min())
+    ax.set_xlabel("Pixel value")
     ax.set_ylabel("Frequency")
     ax.set_title(title)
 

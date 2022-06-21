@@ -2,7 +2,7 @@ import abc
 from typing import Union, Tuple, List
 
 import numpy as np
-from scipy.ndimage import zoom
+from scipy.ndimage import zoom, gaussian_filter
 import torch
 
 
@@ -136,3 +136,59 @@ class DynamicRangeScaling(Transform):
         data[data > crop_range[1]] = crop_range[1]
 
         return (data - crop_range[0]) / (crop_range[1] - crop_range[0]) * (new_range[1] - new_range[0]) + new_range[0]
+
+
+class Blur(Transform):
+
+    def __init__(self, sd: float) -> None:
+
+        super().__init__()
+        self.sd = sd
+
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+
+        new_data = gaussian_filter(data, sigma=self.sd)
+        new_data = torch.from_numpy(new_data)
+
+        return new_data
+
+
+class AxisTranspose(Transform):
+
+    def __init__(self, axis: List[int]) -> None:
+        super().__init__()
+        self.axis = axis
+
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+
+        new_data = np.flip(data.numpy(), self.axis)
+        new_data = torch.from_numpy(new_data.copy())
+
+        return new_data
+
+
+class FDATransform(Transform):
+
+    def __init__(self, target_image: torch.Tensor, L: float) -> None:
+
+        super().__init__()
+        fft = torch.fft.fft2(target_image)
+        self.target_amplitude = fft.abs()
+        self.L = L
+
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+
+        _, h, w = data.shape
+        b = np.floor(np.min((h, w)) * self.L).astype(np.int64)
+
+        src_fft = torch.fft.fft2(data.clone())
+        src_amp, src_ang = src_fft.abs(), src_fft.angle()
+        src_amp[:, 0:b, 0:b] = self.target_amplitude[:, 0:b, 0:b]
+        src_amp[:, 0:b, w-b:w] = self.target_amplitude[:, 0:b, w-b:w]
+        src_amp[:, h-b:h, 0:b] = self.target_amplitude[:, h-b:h, 0:b]
+        src_amp[:, h-b:h, w-b:w] = self.target_amplitude[:, h-b:h, w-b:w]
+
+        src_fft_mod = src_amp * torch.exp(1j * src_ang)
+        new_data = torch.fft.ifft2(src_fft_mod)
+
+        return new_data.real

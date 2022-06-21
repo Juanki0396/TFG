@@ -6,3 +6,5 @@ Data/*.docx
 *__pycache__*
 saved_models/
 todo.md
+images/
+data_for_cyclegan/

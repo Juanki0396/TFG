@@ -148,7 +148,7 @@ class Image:
         axes.imshow(self.image, cmap=cmap)
         axes.axis("off")
         if title is None:
-            title = self.label
+            title = self.label.capitalize()
         axes.set_title(title)
 
         return fig
