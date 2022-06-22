@@ -178,8 +178,10 @@ class Ultrasound(Image):
         else:
             raise ValueError(f"Cone has not same shape as image: {cone.shape} != {self.image.shape}")
 
+        self.dark_cone()
+
     def __copy__(self) -> Ultrasound:
-        return Ultrasound(self.image.copy(), self.label)
+        return self.__class__(self.image.copy(), self.label, self.cone_array.copy())
 
     def dark_cone(self) -> None:
         self.image[self.cone_array] = 0

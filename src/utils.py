@@ -3,6 +3,7 @@ import datetime
 import os
 import random
 import time
+from turtle import right
 from typing import Callable, Any, List, Tuple
 
 import matplotlib.pyplot as plt
@@ -154,7 +155,7 @@ def obtain_histogram(data: List[Image], sample_size: int, title: str = None) -> 
 
     fig, ax = plt.subplots(1, 1)
     freq, bins, _ = ax.hist(voxels, bins=100, density=True)  # Make histogram
-    ax.set_xlim(left=0 if voxels.min() > 0 else voxels.min())
+    ax.set_xlim(left=0, right=255)
     ax.set_xlabel("Pixel value")
     ax.set_ylabel("Frequency")
     ax.set_title(title)
