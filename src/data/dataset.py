@@ -92,35 +92,3 @@ class ImageDataset(Dataset):
         label = label.unsqueeze(dim=0)
 
         return img, label
-
-
-class CycleGanDataset(Dataset):
-
-    def __init__(self, dataset: List[Image], transforms: List[Transform] = None) -> None:
-
-        self.dataset_A = list(filter(lambda image: image.label == "A", dataset))
-        self.dataset_B = list(filter(lambda image: image.label == "B", dataset))
-        self.transform = Compose(transforms=transforms)
-
-    def shuffle(self) -> None:
-
-        random.shuffle(self.dataset_A)
-        random.shuffle(self.dataset_B)
-
-    def __len__(self) -> int:
-        return min(len(self.dataset_A), len(self.dataset_B))
-
-    def __getitem__(self, index) -> Dict[str, np.ndarray]:
-
-        data = {}
-
-        for img in [self.dataset_A[index], self.dataset_B[index]]:
-            tensor = img.torch_tensor
-            tensor = self.transform(tensor)
-
-            if isinstance(tensor, np.ndarray):
-                tensor = torch.from_numpy(tensor).float()
-
-            data[img.label] = tensor
-
-        return data
